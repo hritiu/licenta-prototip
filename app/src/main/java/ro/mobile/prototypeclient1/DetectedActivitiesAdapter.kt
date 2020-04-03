@@ -65,12 +65,14 @@ internal class DetectedActivitiesAdapter(
             tempList.add(detectedActivity)
         }
 
-        var sortedList = tempList.sortedWith(compareBy { it.confidence })
+        var sortedList = tempList.sortedWith(compareByDescending { it.confidence })
 
         this.clear()
 
         for (detectedActivity: DetectedActivity in sortedList) {
-            this.add(detectedActivity)
+            if (detectedActivity.confidence > 50) {
+                this.add(detectedActivity)
+            }
         }
     }
 }
