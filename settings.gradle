@@ -1,0 +1,2 @@
+rootProject.name='Prototype Client1'
+include ':app'
