@@ -70,7 +70,7 @@ internal class DetectedActivitiesAdapter(
         this.clear()
 
         for (detectedActivity: DetectedActivity in sortedList) {
-            if (detectedActivity.confidence > 50) {
+            if (detectedActivity.confidence > 20) {
                 this.add(detectedActivity)
             }
         }

@@ -5,7 +5,7 @@ import com.google.android.gms.location.DetectedActivity
 object Constants {
     val MONITORED_ACTIVITIES = intArrayOf(
         DetectedActivity.STILL,
-        DetectedActivity.ON_FOOT,
+//        DetectedActivity.ON_FOOT,
         DetectedActivity.WALKING,
         DetectedActivity.RUNNING,
         DetectedActivity.ON_BICYCLE,
@@ -20,7 +20,7 @@ object Constants {
 
     val KEY_ACTIVITY_UPDATES_REQUESTED: String = "$PACKAGE_NAME.ACTIVITY_UPDATES_REQUESTED"
 
-    const val DETECTION_INTERVAL_IN_MILLISECONDS : Long = 30 * 1000 // 30 seconds
+    const val DETECTION_INTERVAL_IN_MILLISECONDS : Long = 10 * 1000 // 10 seconds
 
 
 }

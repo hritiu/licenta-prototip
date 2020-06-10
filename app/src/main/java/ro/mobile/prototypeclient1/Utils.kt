@@ -15,19 +15,18 @@ object Utils {
         when(detectedActivityType){
             DetectedActivity.IN_VEHICLE -> return "In a vehicle"
             DetectedActivity.ON_BICYCLE -> return "On a bicycle"
-            DetectedActivity.ON_FOOT -> return "On foot"
+//            DetectedActivity.ON_FOOT -> return "On foot"
             DetectedActivity.RUNNING -> return "Running"
             DetectedActivity.STILL -> return "Still"
             DetectedActivity.TILTING -> return "Tilting"
             DetectedActivity.UNKNOWN -> return "Unknown activity"
-            DetectedActivity.WALKING -> return "Walking"
+//            DetectedActivity.WALKING -> return "Walking"
+            DetectedActivity.WALKING -> return "W A L K I N G"
             else -> return resources.getString(R.string.unidentifiable_activity, detectedActivityType)
         }
     }
 
     fun detectedActivitiesFromJson(jsonArray: String): ArrayList<DetectedActivity?>? {
-//        Log.v("BUBA", "Utils.detectedActivitiesFromJson: The number of the detected activities is = ${jsonArray.length} ")
-//        Log.v("BUBA", "jsonArray = ${jsonArray}")
         val listType = object : TypeToken<ArrayList<DetectedActivity?>?>(){}.type
         var detectedActivities = Gson().fromJson<java.util.ArrayList<DetectedActivity?>>(jsonArray, listType)
         if(detectedActivities == null) {

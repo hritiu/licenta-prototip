@@ -8,7 +8,7 @@ import com.google.android.gms.location.ActivityRecognitionResult
 import com.google.android.gms.location.DetectedActivity
 import java.util.*
 
-class DetectedActivitiesIntentService: IntentService("DetectedActivitiesIS") {
+class DetectedActivitiesIntentService : IntentService("DetectedActivitiesIS") {
 
     val TAG: String = "DetectedActivitiesIS"
 
@@ -23,21 +23,12 @@ class DetectedActivitiesIntentService: IntentService("DetectedActivitiesIS") {
 
         val detectedActivities: ArrayList<DetectedActivity> =
             result.probableActivities as ArrayList<DetectedActivity>
-        Log.v("BUBA", "onHandleIntent probableActivities.size = ${result.probableActivities.size}")
         PreferenceManager.getDefaultSharedPreferences(this)
             .edit()
-            .putString(Constants.KEY_DETECTED_ACTIVITIES,
-                Utils.detectedActivitiesToJson(detectedActivities))
-            .apply()
-
-        Log.i(TAG, "activities detected")
-        for (da in detectedActivities) {
-            Log.i(
-                TAG, Utils.getActivityString(
-                    applicationContext,
-                    da.type
-                ) + " " + da.confidence + "%"
+            .putString(
+                Constants.KEY_DETECTED_ACTIVITIES,
+                Utils.detectedActivitiesToJson(detectedActivities)
             )
-        }
+            .apply()
     }
 }
