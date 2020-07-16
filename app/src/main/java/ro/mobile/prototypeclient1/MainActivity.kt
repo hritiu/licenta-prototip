@@ -1,6 +1,5 @@
 package ro.mobile.prototypeclient1
 
-import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -8,7 +7,6 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
-import android.media.audiofx.Equalizer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -16,21 +14,15 @@ import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.ListView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.preference.PreferenceManager
-import androidx.preference.Preference
 import com.google.android.gms.location.*
-import org.w3c.dom.Text
 import java.util.ArrayList
-import java.util.jar.Manifest
 
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.launch
-import java.io.File
+import com.google.gson.Gson
+import java.io.*
 
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -46,6 +38,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     private var isDriving = true
     private var isWalking = false
 
+    private var parkingAreas = HashMap<Location, ArrayList<Location>>()
+
     private val updateTextTask = object : Runnable {
         override fun run() {
             val task =
@@ -56,7 +50,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
             requestActivityUpdates()
             updateDetectedActivitiesList()
-            mainHandler.postDelayed(this, 10000)
+            mainHandler.postDelayed(this, 3000)
         }
     }
 
@@ -64,12 +58,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        //getLastLocation()
-
         mContext = this;
         val detectedActivitiesListView: ListView = findViewById(R.id.detected_activities_listview)
-
 
         val detectedActivities: ArrayList<DetectedActivity?>? = Utils.detectedActivitiesFromJson(
             this.getSharedPreferences("ro.mobile.prototypeclient1_preferences", 0).getString(
@@ -77,11 +67,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 ""
             )!!
         )
-
-//        Utils.detectedActivitiesFromJson(
-//            this.getSharedPreferences("ro.mobile.prototypeclient1_preferences", 0).getString(Constants.KEY_DETECTED_ACTIVITIES, "")!!
-//        )
-
 
         mAdapter = DetectedActivitiesAdapter(this, detectedActivities)
         detectedActivitiesListView.adapter = mAdapter
@@ -112,36 +97,9 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                     Constants.DETECTION_INTERVAL_IN_MILLISECONDS,
                     getActivityDetectionPendingIntent()
                 )
-                mainHandler.postDelayed(this, 10000)
+                mainHandler.postDelayed(this, 3000)
             }
         }
-
-//        val task = mActivityRecognitionClient.requestActivityUpdates(
-//            Constants.DETECTION_INTERVAL_IN_MILLISECONDS,
-//            getActivityDetectionPendingIntent()
-//        )
-
-//        task.addOnSuccessListener {
-//            Log.v("BUBA", "success")
-//            Toast.makeText(
-//                mContext,
-//                getString(R.string.activity_updates_enabled),
-//                Toast.LENGTH_SHORT
-//            )
-//                .show()
-//
-//            updateDetectedActivitiesList()
-//        }
-//
-//        task.addOnFailureListener {
-//            Log.v("BUBA", "fail")
-//            Toast.makeText(
-//                mContext,
-//                getString(R.string.activity_updates_not_enabled),
-//                Toast.LENGTH_SHORT
-//            )
-//                .show()
-//        }
     }
 
     fun getUpdatesRequestedState(): Boolean {
@@ -179,14 +137,14 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 PreferenceManager.getDefaultSharedPreferences(mContext)
                     .getString(Constants.KEY_DETECTED_ACTIVITIES, "")!!
             )
-        Toast.makeText(this, "A C T I V I T Y   C H A N G E D", Toast.LENGTH_LONG).show()
 
         if (detectedActivities?.get(0)!!.type == DetectedActivity.IN_VEHICLE) {
             isDriving = true;
             isWalking = false;
         } else if (detectedActivities[0]!!.type == DetectedActivity.ON_FOOT || detectedActivities[0]!!.type == DetectedActivity.WALKING) {
-            if(isDriving == true) {
+            if (isDriving == true) {
                 determineLocation()
+                Toast.makeText(this, "L O C A T I O N    S A V E D", Toast.LENGTH_LONG).show()
             }
             isDriving = false;
             isWalking = true;
@@ -257,15 +215,17 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
     }
 
-    fun clearFile(view: View) {
-        var filePath = mContext.filesDir.path.toString() + "locations.txt"
+    //deletes everything from the locations file
+    fun clearFile() {
+        var filePath = mContext.filesDir.path.toString() + "Locations.json"
         var locationsFile: File = File(filePath)
         locationsFile.createNewFile()
 
         locationsFile.printWriter().print("")
     }
 
-    fun determineLocation() {
+    //gets the current location
+    private fun determineLocation() {
         if (checkPermissions()) {
             if (isLocationEnabled()) {
                 var mLocationRequest = LocationRequest()
@@ -282,9 +242,9 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
                 mFusedLocationAClient.lastLocation.addOnCompleteListener(this) { task ->
                     var location: Location? = task.result
-                    var locationPoint = Location("Location Point")
+                    var locationPoint = Location(location?.let { locationToString(it) })
                     locationPoint.latitude = location!!.latitude
-                    locationPoint.longitude = location.longitude
+                    locationPoint.longitude = location!!.longitude
 
                     addLocationToFile(locationPoint)
                 }
@@ -298,57 +258,120 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
     }
 
+    //adds a given location to the json file that stores the locations
     private fun addLocationToFile(location: Location) {
-        var filePath = mContext.filesDir.path.toString() + "locations.txt"
-        var locationsFile: File = File(filePath)
-        locationsFile.createNewFile()
+        val locationsFile: File = File(mContext.filesDir.path, Constants.FILE_LOCATION)
+        val gson = Gson()
+        lateinit var area: Area
 
-        var locations: ArrayList<String> =
-            locationsFile.bufferedReader().readLines() as ArrayList<String>
+        if (locationsFile.exists()) {
+            var jsonString = this.readJsonFromFile(locationsFile)
+            area = gson.fromJson(jsonString, Area::class.java)
+        } else {
+            locationsFile.createNewFile()
+            var areaStructure: HashMap<String, ArrayList<String>> = HashMap()
+            area = Area(areaStructure)
+        }
 
-        locations.add("${location.latitude},${location.longitude}")
+        //add location in the area
+        this.addLocationToParkingAreas(location, area)
 
-        locationsFile.printWriter()
-            .use { out -> locations.forEach { out.println(it); } }
-
-        logCoordinatesAndDistance(locations)
+        //write the area into the file
+        val jsonStringToWrite = gson.toJson(area)
+        this.writeJsonToFile(jsonStringToWrite, locationsFile)
     }
 
+    //computes the distance between 2 coordinates
     private fun determineDistance(locationA: Location, locationB: Location): Float {
         return locationA.distanceTo(locationB)
     }
 
-    private fun logCoordinatesAndDistance(locations: ArrayList<String>) {
-        var coordinateLocations: ArrayList<Location> = ArrayList()
-
-        locations.forEach {
-            var coordinates = it.split(",")
-            var latitude = coordinates[0].toDouble()
-            var longitude = coordinates[1].toDouble()
-
-            val coordinateLocation = Location("")
-            coordinateLocation.latitude = latitude
-            coordinateLocation.longitude = longitude
-
-            coordinateLocations.add(coordinateLocation)
+    //adds a parking location to an area of parking locations
+    private fun addLocationToParkingAreas(location: Location, parkingArea: Area) {
+        var found = false
+        for (coordinate in parkingArea.areas.keys) {
+            if (determineDistance(stringToLocation(coordinate), location) <= 50) {
+                parkingArea.areas.get(coordinate)?.add(locationToString(location))
+                found = true
+            }
         }
 
-        for (pos in 1..coordinateLocations.size - 1) {
-            Log.v(
-                "GPS_Location",
-                "[pos - 1]: lat = ${coordinateLocations[pos - 1].latitude} lon = ${coordinateLocations[pos - 1].longitude}"
-            )
-            Log.v(
-                "GPS_Location",
-                "[pos]: lat = ${coordinateLocations[pos].latitude} lon = ${coordinateLocations[pos].longitude}"
-            )
-            Log.v(
-                "GPS_Location",
-                "distance = ${determineDistance(
-                    coordinateLocations[pos - 1],
-                    coordinateLocations[pos]
-                )}"
-            )
+        if (!found) {
+            parkingArea.areas.put(locationToString(location), ArrayList<String>())
         }
+    }
+
+    //writes the locations into a json file
+    private fun writeJsonToFile(jsonString: String, file: File) {
+        val output: Writer = BufferedWriter(FileWriter(file))
+        output.write(jsonString)
+        output.close()
+    }
+
+    //reads data from json file that stores the locations
+    private fun readJsonFromFile(file: File): String? {
+        val jsonString: String
+
+        try {
+            jsonString = file.readText()
+        } catch (ioException: IOException) {
+            ioException.printStackTrace()
+            Log.v("BUBA_JSON", "It seems that we have an exception")
+            return null
+        }
+
+        return jsonString
+    }
+
+    //converts location to string
+    private fun locationToString(location: Location): String {
+        return location.latitude.toString() + "," + location.longitude.toString()
+    }
+
+    //converts string to location
+    private fun stringToLocation(stringLocation: String): Location {
+        var location: Location = Location(stringLocation)
+
+        val strings = stringLocation.split(",").toTypedArray()
+        location.latitude = strings[0].toDouble()
+        location.longitude = strings[1].toDouble()
+
+        return location
+    }
+
+    //methods for DRIVE and WALK buttons
+    fun setDrivingActivity(view: View) {
+        val detectedActivity: DetectedActivity = DetectedActivity(DetectedActivity.IN_VEHICLE, 99)
+        updateDetectedActivitiesListButtons(detectedActivity)
+    }
+
+    fun setWalkingActivity(view: View) {
+        val detectedActivity: DetectedActivity = DetectedActivity(DetectedActivity.WALKING, 99)
+        updateDetectedActivitiesListButtons(detectedActivity)
+    }
+
+    private fun updateDetectedActivitiesListButtons(detectedActivity: DetectedActivity) {
+        val detectedActivities: ArrayList<DetectedActivity?>? =
+            Utils.detectedActivitiesFromJson(
+                PreferenceManager.getDefaultSharedPreferences(mContext)
+                    .getString(Constants.KEY_DETECTED_ACTIVITIES, "")!!
+            )
+
+        detectedActivities?.clear()
+        detectedActivities?.add(detectedActivity)
+
+        if (detectedActivities?.get(0)!!.type == DetectedActivity.IN_VEHICLE) {
+            isDriving = true;
+            isWalking = false;
+        } else if (detectedActivities[0]!!.type == DetectedActivity.ON_FOOT || detectedActivities[0]!!.type == DetectedActivity.WALKING) {
+            if (isDriving == true) {
+                determineLocation()
+                Toast.makeText(this, "L O C A T I O N    S A V E D", Toast.LENGTH_LONG).show()
+            }
+            isDriving = false;
+            isWalking = true;
+        }
+
+        mAdapter.updateActivities(detectedActivities)
     }
 }
