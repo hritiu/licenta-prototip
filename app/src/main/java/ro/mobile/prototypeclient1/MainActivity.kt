@@ -7,7 +7,9 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
-import android.os.*
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.View
@@ -24,16 +26,19 @@ import java.io.*
 
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
 
+    private val TAG = "MainActivity"
     private lateinit var mContext: Context
     private lateinit var mActivityRecognitionClient: ActivityRecognitionClient
     private lateinit var mAdapter: DetectedActivitiesAdapter
-    private lateinit var walkingActivityLog: ActivityLog
-    private lateinit var drivingActivityLog: ActivityLog
-
     lateinit var mainHandler: Handler
+
+    private val PERMISSION_ID = 42
+    lateinit var mFusedLocationClient: FusedLocationProviderClient
 
     private var isDriving = true
     private var isWalking = false
+
+    private var parkingAreas = HashMap<Location, ArrayList<Location>>()
 
     private val updateTextTask = object : Runnable {
         override fun run() {
@@ -45,16 +50,13 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
             requestActivityUpdates()
             updateDetectedActivitiesList()
-            mainHandler.postDelayed(this, Constants.DETECTION_INTERVAL_IN_MILLISECONDS)
+            mainHandler.postDelayed(this, 3000)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        this.walkingActivityLog = ActivityLog(Constants.WALKING, HashMap<Int, String>())
-        this.drivingActivityLog = ActivityLog(Constants.DRIVING, HashMap<Int, String>())
 
         mContext = this;
         val detectedActivitiesListView: ListView = findViewById(R.id.detected_activities_listview)
@@ -95,7 +97,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                     Constants.DETECTION_INTERVAL_IN_MILLISECONDS,
                     getActivityDetectionPendingIntent()
                 )
-                mainHandler.postDelayed(this, Constants.DETECTION_INTERVAL_IN_MILLISECONDS)
+                mainHandler.postDelayed(this, 3000)
             }
         }
     }
@@ -121,7 +123,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             mAdapter.updateActivities(java.util.ArrayList())
         }
         task.addOnFailureListener {
-            Log.w(Constants.TAG, "Failed to enable activity recognition.")
+            Log.w(TAG, "Failed to enable activity recognition.")
             Toast.makeText(
                 mContext, getString(R.string.activity_updates_not_removed),
                 Toast.LENGTH_SHORT
@@ -139,31 +141,10 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         if (detectedActivities?.get(0)!!.type == DetectedActivity.IN_VEHICLE) {
             isDriving = true;
             isWalking = false;
-
-            //!!!!!!!!!!!!!!!!!!!!!!!!!
-                //add accuracy and location to driving log
-            val location = getCurrentLocation()
-            this.drivingActivityLog.addActivity(detectedActivities[0]!!. gv, locationToString(location!!))
-            //!!!!!!!!!!!!!!!!!!!!!!!!!
-
         } else if (detectedActivities[0]!!.type == DetectedActivity.ON_FOOT || detectedActivities[0]!!.type == DetectedActivity.WALKING) {
-
-            //!!!!!!!!!!!!!!!!!!!!!!!!!
-                //add accuracy and location to walking log
-            val location = getCurrentLocation()
-            this.walkingActivityLog.addActivity(detectedActivities[0]!!.confidence, locationToString(location!!))
-            //!!!!!!!!!!!!!!!!!!!!!!!!!
-
-            if (isDriving) {
-                //determineLocation()
-                getCurrentLocation()?.let { addLocationToFile(it) }
+            if (isDriving == true) {
+                determineLocation()
                 Toast.makeText(this, "L O C A T I O N    S A V E D", Toast.LENGTH_LONG).show()
-                val vibrator = mContext?.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                if (Build.VERSION.SDK_INT >= 26) {
-                    vibrator.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
-                } else {
-                    vibrator.vibrate(200)
-                }
             }
             isDriving = false;
             isWalking = true;
@@ -204,7 +185,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 android.Manifest.permission.ACCESS_COARSE_LOCATION,
                 android.Manifest.permission.ACCESS_FINE_LOCATION
             ),
-            Constants.PERMISSION_ID
+            PERMISSION_ID
         )
     }
 
@@ -213,7 +194,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        if (requestCode == Constants.PERMISSION_ID) {
+        if (requestCode == PERMISSION_ID) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 //Granted. Start getting the location info
             }
@@ -275,38 +256,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         } else {
             requestPermissions()
         }
-    }
-
-    private fun getCurrentLocation(): Location? {
-        var locationPoint: Location? = null
-
-        if(checkPermissions()) {
-            if(isLocationEnabled()) {
-                val locationRequest = LocationRequest()
-                locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-                locationRequest.interval = 0
-                locationRequest.fastestInterval = 0
-                locationRequest.numUpdates = 1
-
-                val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-                fusedLocationClient!!.requestLocationUpdates(locationRequest, mLocationCallback, Looper.myLooper())
-
-                fusedLocationClient.lastLocation.addOnCompleteListener(this) {task ->
-                    val location: Location? = task.result
-                    locationPoint = Location(location?.let { locationToString(it) })
-                    locationPoint!!.latitude = location!!.latitude
-                    locationPoint!!.longitude = location.longitude
-                }
-            } else {
-                Toast.makeText(this, "Turn on location", Toast.LENGTH_LONG).show()
-                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                startActivity(intent)
-            }
-        } else {
-            requestPermissions()
-        }
-
-        return locationPoint
     }
 
     //adds a given location to the json file that stores the locations
@@ -416,8 +365,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             isWalking = false;
         } else if (detectedActivities[0]!!.type == DetectedActivity.ON_FOOT || detectedActivities[0]!!.type == DetectedActivity.WALKING) {
             if (isDriving == true) {
-//                determineLocation()
-                getCurrentLocation()?.let { addLocationToFile(it) }
+                determineLocation()
                 Toast.makeText(this, "L O C A T I O N    S A V E D", Toast.LENGTH_LONG).show()
             }
             isDriving = false;
@@ -425,9 +373,5 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
 
         mAdapter.updateActivities(detectedActivities)
-    }
-
-    private fun chooseLocation(activity: String, accuracy: Int, location: String) {
-
     }
 }
