@@ -1,7 +1,6 @@
 package ro.mobile.prototypeclient1
 
 import android.content.Context
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -44,9 +43,9 @@ internal class DetectedActivitiesAdapter(
         return viewVariable
     }
 
-    fun updateActivities(detectedActivities: ArrayList<DetectedActivity?>?) {
+    fun updateActivities(detectedActivities: java.util.ArrayList<DetectedActivity>) {
         var detectedActivitiesMap: HashMap<Int, Int> = HashMap()
-        for (activity: DetectedActivity? in detectedActivities!!) {
+        for (activity: DetectedActivity? in detectedActivities) {
             detectedActivitiesMap[activity!!.type] =
                 activity.confidence //might not work and should be changed to put
         }

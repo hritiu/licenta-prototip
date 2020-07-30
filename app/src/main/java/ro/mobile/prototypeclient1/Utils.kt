@@ -2,6 +2,7 @@ package ro.mobile.prototypeclient1
 
 import android.content.Context
 import android.content.res.Resources
+import android.location.Location
 import android.util.Log
 import com.google.android.gms.location.DetectedActivity
 import com.google.gson.Gson
@@ -41,5 +42,26 @@ object Utils {
         val type = object : TypeToken<java.util.ArrayList<DetectedActivity?>?>() {}.type
 
         return Gson().toJson(detectedActivitiesList, type)
+    }
+
+    //computes the distance between 2 coordinates
+    fun determineDistance(locationA: Location, locationB: Location): Float {
+        return locationA.distanceTo(locationB)
+    }
+
+    //converts location to string
+    fun locationToString(location: Location): String {
+        return location.latitude.toString() + "," + location.longitude.toString()
+    }
+
+    //converts string to location
+    fun stringToLocation(stringLocation: String): Location {
+        var location: Location = Location(stringLocation)
+
+        val strings = stringLocation.split(",").toTypedArray()
+        location.latitude = strings[0].toDouble()
+        location.longitude = strings[1].toDouble()
+
+        return location
     }
 }

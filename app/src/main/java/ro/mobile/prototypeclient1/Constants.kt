@@ -17,9 +17,11 @@ object Constants {
 
     const val KEY_DETECTED_ACTIVITIES : String = "$PACKAGE_NAME.DETECTED_ACTIVITIES"
 
-    val KEY_ACTIVITY_UPDATES_REQUESTED: String = "$PACKAGE_NAME.ACTIVITY_UPDATES_REQUESTED"
-
-    const val DETECTION_INTERVAL_IN_MILLISECONDS : Long = 3000 //10 * 1000 // 10 seconds
+    const val DETECTION_INTERVAL_IN_MILLISECONDS : Long = 10 //10 * 1000 // 10 seconds
 
     const val FILE_LOCATION ="Locations.json"
+
+    const val TAG = "MainActivity"
+
+    const val PERMISSION_ID = 42
 }
