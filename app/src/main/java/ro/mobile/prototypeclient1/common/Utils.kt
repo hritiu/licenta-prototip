@@ -1,13 +1,12 @@
-package ro.mobile.prototypeclient1
+package ro.mobile.prototypeclient1.common
 
 import android.content.Context
 import android.content.res.Resources
 import android.location.Location
-import android.util.Log
 import com.google.android.gms.location.DetectedActivity
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import java.io.IOException
+import ro.mobile.prototypeclient1.R
 
 object Utils {
 

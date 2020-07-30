@@ -1,11 +1,12 @@
-package ro.mobile.prototypeclient1
+package ro.mobile.prototypeclient1.domain
 
 import android.app.IntentService
 import android.content.Intent
-import android.util.Log
 import androidx.preference.PreferenceManager
 import com.google.android.gms.location.ActivityRecognitionResult
 import com.google.android.gms.location.DetectedActivity
+import ro.mobile.prototypeclient1.common.Constants
+import ro.mobile.prototypeclient1.common.Utils
 import java.util.*
 
 class DetectedActivitiesIntentService : IntentService("DetectedActivitiesIS") {

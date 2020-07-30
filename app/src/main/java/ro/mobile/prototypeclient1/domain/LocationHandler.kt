@@ -1,6 +1,8 @@
-package ro.mobile.prototypeclient1
+package ro.mobile.prototypeclient1.domain
 
 import android.location.Location
+import ro.mobile.prototypeclient1.common.Utils
+import ro.mobile.prototypeclient1.domain.Area
 import java.util.ArrayList
 
 class LocationHandler {
@@ -9,7 +11,8 @@ class LocationHandler {
     fun addLocationToParkingAreas(location: Location, parkingArea: Area) {
         var found = false
         for (coordinate in parkingArea.areas.keys) {
-            if (Utils.determineDistance(Utils.stringToLocation(coordinate), location) <= 50) {
+            if (Utils.determineDistance(
+                    Utils.stringToLocation(coordinate), location) <= 50) {
                 parkingArea.areas.get(coordinate)?.add(Utils.locationToString(location))
                 found = true
             }

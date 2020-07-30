@@ -1,4 +1,4 @@
-package ro.mobile.prototypeclient1
+package ro.mobile.prototypeclient1.ui
 
 import android.app.PendingIntent
 import android.content.Context
@@ -18,6 +18,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.preference.PreferenceManager
 import com.google.android.gms.location.*
+import ro.mobile.prototypeclient1.R
+import ro.mobile.prototypeclient1.common.Constants
+import ro.mobile.prototypeclient1.common.Utils
+import ro.mobile.prototypeclient1.domain.*
+import ro.mobile.prototypeclient1.domain.DetectedActivitiesAdapter
 import java.util.ArrayList
 
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
@@ -29,9 +34,11 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     private var isDriving = true
     private var isWalking = false
-    private var activityHandler = ActivityHandler(isDriving, isWalking)
+    private var activityHandler =
+        ActivityHandler(isDriving, isWalking)
     private var fileHandler = FileHandler()
-    private var locationHandler = LocationHandler()
+    private var locationHandler =
+        LocationHandler()
 
     @Override
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,7 +55,10 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             )!!
         )
 
-        mAdapter = DetectedActivitiesAdapter(this, detectedActivities)
+        mAdapter = DetectedActivitiesAdapter(
+            this,
+            detectedActivities
+        )
         detectedActivitiesListView.adapter = mAdapter
         mActivityRecognitionClient = ActivityRecognitionClient(this)
 

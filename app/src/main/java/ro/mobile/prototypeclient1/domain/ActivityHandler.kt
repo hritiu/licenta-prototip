@@ -1,8 +1,10 @@
-package ro.mobile.prototypeclient1
+package ro.mobile.prototypeclient1.domain
 
 import android.content.Context
 import android.content.SharedPreferences
 import com.google.android.gms.location.DetectedActivity
+import ro.mobile.prototypeclient1.common.Constants
+import ro.mobile.prototypeclient1.common.Utils
 import java.util.ArrayList
 
 class ActivityHandler(var isDriving: Boolean, var isWalking: Boolean) {
@@ -12,7 +14,6 @@ class ActivityHandler(var isDriving: Boolean, var isWalking: Boolean) {
     fun updateDetectedActivitiesList(
         defaultSharedPreferences: SharedPreferences,
         context: Context
-//    ): ArrayList<DetectedActivity?>? {
     ): HashMap<String, Any> {
         var callDetermineLocation = false
         val detectedActivities: ArrayList<DetectedActivity?>? =
@@ -31,18 +32,10 @@ class ActivityHandler(var isDriving: Boolean, var isWalking: Boolean) {
             isWalking = true;
         }
 
-//        if(callDetermineLocation) {
-//            return detectedActivities
-//        } else {
-//            return null
-//        }
-
         var response: HashMap<String, Any> = HashMap()
         response.put("detectedActivities", detectedActivities)
         response.put("callDetermineLocation", callDetermineLocation)
 
         return response
-
-//        return detectedActivities
     }
 }

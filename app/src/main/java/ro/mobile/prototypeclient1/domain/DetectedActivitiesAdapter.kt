@@ -1,4 +1,4 @@
-package ro.mobile.prototypeclient1
+package ro.mobile.prototypeclient1.domain
 
 import android.content.Context
 import android.view.LayoutInflater
@@ -9,6 +9,9 @@ import android.widget.TextView
 import androidx.annotation.NonNull
 import androidx.annotation.Nullable
 import com.google.android.gms.location.DetectedActivity
+import ro.mobile.prototypeclient1.R
+import ro.mobile.prototypeclient1.common.Constants
+import ro.mobile.prototypeclient1.common.Utils
 
 internal class DetectedActivitiesAdapter(
     context: Context?,

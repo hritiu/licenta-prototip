@@ -1,15 +1,17 @@
-package ro.mobile.prototypeclient1
+package ro.mobile.prototypeclient1.domain
 
 import android.content.Context
 import android.location.Location
 import android.util.Log
 import com.google.gson.Gson
+import ro.mobile.prototypeclient1.common.Constants
 import java.io.*
 import java.util.ArrayList
 
 class FileHandler {
 
-    private var locationHandler = LocationHandler()
+    private var locationHandler =
+        LocationHandler()
 
     //adds a given location to the json file that stores the locations
     fun addLocationToFile(location: Location, mContext: Context) {
@@ -31,7 +33,6 @@ class FileHandler {
         }
 
         //add location in the area
-//        this.addLocationToParkingAreas(location, area)
         locationHandler.addLocationToParkingAreas(location, area)
 
         //write the area into the file

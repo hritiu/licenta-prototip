@@ -1,4 +1,4 @@
-package ro.mobile.prototypeclient1
+package ro.mobile.prototypeclient1.common
 
 import com.google.android.gms.location.DetectedActivity
 
