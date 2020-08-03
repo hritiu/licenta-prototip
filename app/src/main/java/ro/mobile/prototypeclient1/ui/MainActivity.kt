@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.widget.ListView
 import android.widget.Toast
@@ -76,7 +77,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     @Override
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-       if (key.equals(Constants.KEY_DETECTED_ACTIVITIES)) {
+        if (key.equals(Constants.KEY_DETECTED_ACTIVITIES)) {
             val updateDetectedActivitiesResponse = activityHandler.updateDetectedActivitiesList(
                 PreferenceManager.getDefaultSharedPreferences(mContext), this@MainActivity
             )
@@ -88,6 +89,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 determineLocation()
                 Toast.makeText(this@MainActivity, "L O C A T I O N    S A V E D", Toast.LENGTH_LONG)
                     .show()
+                Log.v("ACTIVITY_LOG", "L O C A T I O N    S A V E D")
             }
         }
     }
@@ -105,13 +107,15 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             val updateDetectedActivitiesResponse = activityHandler.updateDetectedActivitiesList(
                 PreferenceManager.getDefaultSharedPreferences(mContext), this@MainActivity
             )
-            val detectedActivities = updateDetectedActivitiesResponse["detectedActivities"] as ArrayList<DetectedActivity>
+            val detectedActivities =
+                updateDetectedActivitiesResponse["detectedActivities"] as ArrayList<DetectedActivity>
             mAdapter.updateActivities(detectedActivities)
 
             if (updateDetectedActivitiesResponse["callDetermineLocation"] == true) {
                 determineLocation()
                 Toast.makeText(this@MainActivity, "L O C A T I O N    S A V E D", Toast.LENGTH_LONG)
                     .show()
+                Log.v("ACTIVITY_LOG", "L O C A T I O N    S A V E D")
             }
 
             mainHandler.postDelayed(this, 3000)
