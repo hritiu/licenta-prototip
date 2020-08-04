@@ -1,6 +1,7 @@
 package ro.mobile.prototypeclient1.domain
 
 import android.content.Context
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -68,6 +69,12 @@ internal class DetectedActivitiesAdapter(
         }
 
         var sortedList = tempList.sortedWith(compareByDescending { it.confidence })
+
+        Log.v("ACTIVITY_LOG", "B E G I N")
+        for(detectedActivity in sortedList) {
+            Log.v("ACTIVITY_LOG", "activity: ${Utils.activityTypeToString(detectedActivity.type)}; confidence: ${detectedActivity.confidence}")
+        }
+        Log.v("ACTIVITY_LOG", "E N D")
 
         this.clear()
 
