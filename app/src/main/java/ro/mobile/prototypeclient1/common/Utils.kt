@@ -27,6 +27,20 @@ object Utils {
         }
     }
 
+    fun activityTypeToString(activityType: Int): String {
+        when(activityType) {
+            DetectedActivity.IN_VEHICLE -> return "IN_VEHICLE"
+            DetectedActivity.ON_BICYCLE -> return "ON_BICYCLE"
+            DetectedActivity.RUNNING -> return "RUNNING"
+            DetectedActivity.STILL -> return "STILL"
+            DetectedActivity.TILTING -> return "TILTING"
+            DetectedActivity.UNKNOWN -> return "UNKNOWN"
+            DetectedActivity.WALKING -> return "WALKING"
+            DetectedActivity.ON_FOOT -> return "ON_FOOT"
+            else -> return "UNIDENTIFIABLE ACTIVITY"
+        }
+    }
+
     fun detectedActivitiesFromJson(jsonArray: String): ArrayList<DetectedActivity?>? {
         val listType = object : TypeToken<ArrayList<DetectedActivity?>?>(){}.type
         var detectedActivities = Gson().fromJson<java.util.ArrayList<DetectedActivity?>>(jsonArray, listType)
