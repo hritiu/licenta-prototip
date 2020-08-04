@@ -75,7 +75,7 @@ internal class DetectedActivitiesAdapter(
             Log.v("ACTIVITY_LOG", "activity: ${Utils.activityTypeToString(detectedActivity.type)}; confidence: ${detectedActivity.confidence}")
         }
         Log.v("ACTIVITY_LOG", "E N D")
-
+        
         this.clear()
 
         for (detectedActivity: DetectedActivity in sortedList) {
