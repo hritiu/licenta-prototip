@@ -21,6 +21,18 @@
         android:onClick="setWalkingActivity"
         android:text="Walk" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="startWalking"
+        android:text="Start Walking" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="endWalking"
+        android:text="End Walking" />
+
     <TextView
         android:id="@+id/detected_activities_title"
         android:layout_width="match_parent"
