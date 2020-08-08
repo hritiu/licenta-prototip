@@ -13,6 +13,7 @@ import com.google.android.gms.location.DetectedActivity
 import ro.mobile.prototypeclient1.R
 import ro.mobile.prototypeclient1.common.Constants
 import ro.mobile.prototypeclient1.common.Utils
+import java.io.File
 
 internal class DetectedActivitiesAdapter(
     context: Context?,
@@ -20,6 +21,7 @@ internal class DetectedActivitiesAdapter(
 ) : ArrayAdapter<DetectedActivity?>(context!!, 0, detectedActivities!!) {
 
     lateinit var viewVariable: View //might not work
+    var fileHandler = FileHandler()
 
     @Override
     @NonNull
@@ -70,20 +72,23 @@ internal class DetectedActivitiesAdapter(
 
         var sortedList = tempList.sortedWith(compareByDescending { it.confidence })
 
-        Log.v("ACTIVITY_LOG", "B E G I N")
-
-        for(detectedActivity in sortedList) {
-            Log.v("ACTIVITY_LOG", "activity: ${Utils.activityTypeToString(detectedActivity.type)}; confidence: ${detectedActivity.confidence}")
-        }
-        Log.v("ACTIVITY_LOG", "E N D")
-
+//        var logString: String = ""
+//        for(detectedActivity in sortedList) {
+//            logString += "${Utils.activityTypeToString(detectedActivity.type)}; confidence: ${detectedActivity.confidence}\n"
+//
+//        }
+//        logString += "\n"
+//        val logFile: File = File(context.filesDir.path, Constants.LOG_FILE_LOCATION)
+//        fileHandler.writeLogToFile(logString, logFile)
 
         this.clear()
-
         for (detectedActivity: DetectedActivity in sortedList) {
-            if (detectedActivity.confidence > 20) {
-                this.add(detectedActivity)
-            }
+            this.add(detectedActivity)
         }
+//        for (detectedActivity: DetectedActivity in sortedList) {
+//            if (detectedActivity.confidence > 20) {
+//                this.add(detectedActivity)
+//            }
+//        }
     }
 }

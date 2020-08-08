@@ -24,6 +24,7 @@ import ro.mobile.prototypeclient1.common.Constants
 import ro.mobile.prototypeclient1.common.Utils
 import ro.mobile.prototypeclient1.domain.*
 import ro.mobile.prototypeclient1.domain.DetectedActivitiesAdapter
+import java.io.File
 import java.util.ArrayList
 
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
@@ -250,5 +251,15 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
 
 //        mAdapter.updateActivities(detectedActivities)
+    }
+
+    fun startWalking(view: View) {
+        val logFile: File = File(mContext.filesDir.path, Constants.LOG_FILE_LOCATION)
+        fileHandler.writeLogToFile("S T A R T     W A L K I N G\n\n\n", logFile)
+    }
+
+    fun endWalking(view: View) {
+        val logFile: File = File(mContext.filesDir.path, Constants.LOG_FILE_LOCATION)
+        fileHandler.writeLogToFile("E N D    W A L K I N G\n\n\n", logFile)
     }
 }

@@ -21,6 +21,8 @@ object Constants {
 
     const val FILE_LOCATION ="Locations.json"
 
+    const val LOG_FILE_LOCATION ="Log.txt"
+
     const val TAG = "MainActivity"
 
     const val PERMISSION_ID = 42
