@@ -7,21 +7,109 @@ import android.util.Log
 import android.view.View
 import com.google.gson.Gson
 import ro.mobile.prototypeclient1.common.Constants
+import ro.mobile.prototypeclient1.common.Utils
 import java.io.*
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.collections.HashMap
 
-class FileHandler {
+class FileHandler() {
 
-    private var locationHandler =
-        LocationHandler()
+    private var locationHandler = LocationHandler()
+    private val gson = Gson()
 
     //adds a given location to the json file that stores the locations
-    fun addLocationToFile(location: Location, mContext: Context) {
-        val locationsFile: File = File(mContext.filesDir.path, Constants.FILE_LOCATION)
-        val gson = Gson()
+    fun addLocationToFile(location: Location?, mContext: Context) {
+//        lateinit var area: Area
+//
+//        if (locationsFile.exists()) {
+//            var jsonString = this.readJsonFromFile(locationsFile)
+//            area = gson.fromJson(jsonString, Area::class.java)
+//        } else {
+//            locationsFile.createNewFile()
+//            var areaStructure: HashMap<String, ArrayList<String>> = HashMap()
+//            area = Area(areaStructure)
+//        }
+//
+//        if(area.areas == null) {
+//            area.areas = HashMap<String, ArrayList<String>>()
+//        }
+        val locationsFile = File(mContext.filesDir.path, Constants.FILE_LOCATION)
+
+        val area = getAreasFromFile(mContext)
+        //add location in the area
+        locationHandler.addLocationToParkingAreas(location, area)
+
+        //write the area into the file
+        val jsonStringToWrite = gson.toJson(area)
+        this.writeJsonToFile(jsonStringToWrite, locationsFile)
+    }
+
+    fun writeLogToFile(confidence: Int, location: Location?, mContext: Context) {
+        val logFile = File(mContext.filesDir.path, Constants.LOG_FILE_LOCATION)
+        val activityLog = getActivityLogFromFile(mContext)
+        activityLog.pairs.add(Pair(confidence.toString(), Utils.locationToString(location!!)))
+
+        //write the area into the file
+        val jsonStringToWrite = gson.toJson(activityLog)
+        this.writeJsonToFile(jsonStringToWrite, logFile)
+        Log.v("BUBA", "Location written to log file confidence = $confidence  location = ${Utils.locationToString(location)}")
+    }
+
+    fun writeExtraLog(log: String, location: Location?, mContext: Context) {
+        val logFile = File(mContext.filesDir.path, Constants.EXTRA_LOG_FILE_LOCATION)
+
+        var string = this.readLogFile(logFile)
+
+        if (string != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val date = LocalDateTime.now()
+                string += "$date\n"
+            } else {
+                string += "invalid sdk version\n"
+            }
+            string += "$log "
+
+            if(location != null) {
+                string += " ${Utils.locationToString(location)}"
+            } else {
+                string += " Could not determine location"
+            }
+            string += "\n"
+
+            val output: Writer = BufferedWriter(FileWriter(logFile))
+//            output.write("")
+            output.write(string)
+            output.close()
+        }
+    }
+
+    fun getActivityLogFromFile(mContext: Context): ActivityLog {
+        lateinit var activityLog: ActivityLog
+        val logFile = File(mContext.filesDir.path, Constants.LOG_FILE_LOCATION)
+
+        if (logFile.exists()) {
+            var jsonString = this.readJsonFromFile(logFile)
+            if(jsonString == "") {
+                jsonString = "{}"
+            }
+            activityLog = gson.fromJson(jsonString, ActivityLog::class.java)
+        } else {
+            logFile.createNewFile()
+            val logStructure: ArrayList<Pair<String, String>> = ArrayList()
+            activityLog = ActivityLog(logStructure)
+        }
+
+        if (activityLog.pairs == null) {
+            activityLog.pairs = ArrayList<Pair<String, String>>()
+        }
+
+        return activityLog
+    }
+
+    private fun getAreasFromFile(mContext: Context): Area {
         lateinit var area: Area
+        val locationsFile = File(mContext.filesDir.path, Constants.FILE_LOCATION)
 
         if (locationsFile.exists()) {
             var jsonString = this.readJsonFromFile(locationsFile)
@@ -32,37 +120,32 @@ class FileHandler {
             area = Area(areaStructure)
         }
 
-        if(area.areas == null) {
+        if (area.areas == null) {
             area.areas = HashMap<String, ArrayList<String>>()
         }
 
-        //add location in the area
-        locationHandler.addLocationToParkingAreas(location, area)
-
-        //write the area into the file
-        val jsonStringToWrite = gson.toJson(area)
-        this.writeJsonToFile(jsonStringToWrite, locationsFile)
+        return area
     }
 
-    fun writeLogToFile(log: String, file: File) {
-        var string = this.readLogFile(file)
-
-        if(string != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val date = LocalDateTime.now()
-                string += "$date\n"
-            } else {
-                string += "invalid sdk version\n"
-            }
-            string += "$log"
-
-            val output: Writer = BufferedWriter(FileWriter(file))
-//            output.write("")
-            output.write(string)
-            output.close()
-        }
-    }
-
+//    fun writeLogToFile(log: String, file: File) {
+//        var string = this.readLogFile(file)
+//
+//        if(string != null) {
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                val date = LocalDateTime.now()
+//                string += "$date\n"
+//            } else {
+//                string += "invalid sdk version\n"
+//            }
+//            string += "$log"
+//
+//            val output: Writer = BufferedWriter(FileWriter(file))
+////            output.write("")
+//            output.write(string)
+//            output.close()
+//        }
+//    }
+//
     private fun readLogFile(file: File): String? {
         val log: String
 
@@ -80,8 +163,8 @@ class FileHandler {
     private fun writeJsonToFile(jsonString: String, file: File) {
         val output: Writer = BufferedWriter(FileWriter(file))
         //uncomment in order to erase the content from the file
-//        output.write(jsonString)
-        output.write("{}")
+//        output.write("{}")
+        output.write(jsonString)
         output.close()
     }
 
@@ -97,5 +180,34 @@ class FileHandler {
         }
 
         return jsonString
+    }
+
+    fun clearFiles(mContext: Context) {
+        val locationsFile = File(mContext.filesDir.path, Constants.FILE_LOCATION)
+        var output: Writer = BufferedWriter(FileWriter(locationsFile))
+        output.write("{}")
+        output.close()
+
+        val logFile = File(mContext.filesDir.path, Constants.LOG_FILE_LOCATION)
+        output = BufferedWriter(FileWriter(logFile))
+        output.write("{}")
+        output.close()
+
+        val logExtraFile = File(mContext.filesDir.path, Constants.EXTRA_LOG_FILE_LOCATION)
+        output = BufferedWriter(FileWriter(logExtraFile))
+        output.write("")
+        output.close()
+    }
+
+    fun clearLogFiles(mContext: Context) {
+        val logFile = File(mContext.filesDir.path, Constants.LOG_FILE_LOCATION)
+        var output = BufferedWriter(FileWriter(logFile))
+        output.write("{}")
+        output.close()
+
+        val logExtraFile = File(mContext.filesDir.path, Constants.EXTRA_LOG_FILE_LOCATION)
+        output = BufferedWriter(FileWriter(logExtraFile))
+        output.write("")
+        output.close()
     }
 }
