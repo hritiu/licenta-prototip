@@ -23,18 +23,15 @@ internal class DetectedActivitiesAdapter(
     @Override
     @NonNull
     override fun getView(position: Int, @Nullable view: View?, parent: ViewGroup): View {
-//        viewVariable = view!!
-        var detectedActivity: DetectedActivity = getItem(position)!!
+        val detectedActivity: DetectedActivity = getItem(position)!!
         if (view == null) {
-            viewVariable = LayoutInflater.from(context).inflate(
-                R.layout.detected_activity, parent, false
-            )
+            viewVariable = LayoutInflater.from(context).inflate(R.layout.detected_activity, parent, false)
         } else {
             viewVariable = view
         }
 
-        var activityName: TextView = viewVariable.findViewById(R.id.detected_activity_name)
-        var activityConfidenceLevel: TextView =
+        val activityName: TextView = viewVariable.findViewById(R.id.detected_activity_name)
+        val activityConfidenceLevel: TextView =
             viewVariable.findViewById(R.id.detected_activity_confidence_level)
 
         if (detectedActivity != null) {
@@ -47,13 +44,13 @@ internal class DetectedActivitiesAdapter(
     }
 
     fun updateActivities(detectedActivities: java.util.ArrayList<DetectedActivity>) {
-        var detectedActivitiesMap: HashMap<Int, Int> = HashMap()
+        val detectedActivitiesMap: HashMap<Int, Int> = HashMap()
         for (activity: DetectedActivity? in detectedActivities) {
             detectedActivitiesMap[activity!!.type] =
                 activity.confidence //might not work and should be changed to put
         }
 
-        var tempList: ArrayList<DetectedActivity> = ArrayList()
+        val tempList: ArrayList<DetectedActivity> = ArrayList()
         for (i in 0..Constants.MONITORED_ACTIVITIES.size - 1) {
             var confidence: Int?
             if (detectedActivitiesMap.containsKey(Constants.MONITORED_ACTIVITIES[i])) {
@@ -67,17 +64,12 @@ internal class DetectedActivitiesAdapter(
             tempList.add(detectedActivity)
         }
 
-        var sortedList = tempList.sortedWith(compareByDescending { it.confidence })
+        val sortedList = tempList.sortedWith(compareByDescending { it.confidence })
 
         this.clear()
 
         for (detectedActivity: DetectedActivity in sortedList) {
                 this.add(detectedActivity)
         }
-//        for (detectedActivity: DetectedActivity in sortedList) {
-//            if (detectedActivity.confidence > 20) {
-//                this.add(detectedActivity)
-//            }
-//        }
     }
 }

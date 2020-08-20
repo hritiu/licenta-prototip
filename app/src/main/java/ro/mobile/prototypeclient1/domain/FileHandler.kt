@@ -20,20 +20,6 @@ class FileHandler() {
 
     //adds a given location to the json file that stores the locations
     fun addLocationToFile(location: Location?, mContext: Context) {
-//        lateinit var area: Area
-//
-//        if (locationsFile.exists()) {
-//            var jsonString = this.readJsonFromFile(locationsFile)
-//            area = gson.fromJson(jsonString, Area::class.java)
-//        } else {
-//            locationsFile.createNewFile()
-//            var areaStructure: HashMap<String, ArrayList<String>> = HashMap()
-//            area = Area(areaStructure)
-//        }
-//
-//        if(area.areas == null) {
-//            area.areas = HashMap<String, ArrayList<String>>()
-//        }
         val locationsFile = File(mContext.filesDir.path, Constants.FILE_LOCATION)
 
         val area = getAreasFromFile(mContext)
@@ -78,7 +64,6 @@ class FileHandler() {
             string += "\n"
 
             val output: Writer = BufferedWriter(FileWriter(logFile))
-//            output.write("")
             output.write(string)
             output.close()
         }
@@ -112,11 +97,11 @@ class FileHandler() {
         val locationsFile = File(mContext.filesDir.path, Constants.FILE_LOCATION)
 
         if (locationsFile.exists()) {
-            var jsonString = this.readJsonFromFile(locationsFile)
+            val jsonString = this.readJsonFromFile(locationsFile)
             area = gson.fromJson(jsonString, Area::class.java)
         } else {
             locationsFile.createNewFile()
-            var areaStructure: HashMap<String, ArrayList<String>> = HashMap()
+            val areaStructure: HashMap<String, ArrayList<String>> = HashMap()
             area = Area(areaStructure)
         }
 
@@ -127,25 +112,6 @@ class FileHandler() {
         return area
     }
 
-//    fun writeLogToFile(log: String, file: File) {
-//        var string = this.readLogFile(file)
-//
-//        if(string != null) {
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//                val date = LocalDateTime.now()
-//                string += "$date\n"
-//            } else {
-//                string += "invalid sdk version\n"
-//            }
-//            string += "$log"
-//
-//            val output: Writer = BufferedWriter(FileWriter(file))
-////            output.write("")
-//            output.write(string)
-//            output.close()
-//        }
-//    }
-//
     private fun readLogFile(file: File): String? {
         val log: String
 
@@ -162,8 +128,6 @@ class FileHandler() {
 
     private fun writeJsonToFile(jsonString: String, file: File) {
         val output: Writer = BufferedWriter(FileWriter(file))
-        //uncomment in order to erase the content from the file
-//        output.write("{}")
         output.write(jsonString)
         output.close()
     }
@@ -205,9 +169,9 @@ class FileHandler() {
         output.write("{}")
         output.close()
 
-        val logExtraFile = File(mContext.filesDir.path, Constants.EXTRA_LOG_FILE_LOCATION)
-        output = BufferedWriter(FileWriter(logExtraFile))
-        output.write("")
-        output.close()
+//        val logExtraFile = File(mContext.filesDir.path, Constants.EXTRA_LOG_FILE_LOCATION)
+//        output = BufferedWriter(FileWriter(logExtraFile))
+//        output.write("")
+//        output.close()
     }
 }
