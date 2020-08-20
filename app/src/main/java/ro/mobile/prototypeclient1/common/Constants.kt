@@ -21,7 +21,9 @@ object Constants {
 
     const val FILE_LOCATION ="Locations.json"
 
-    const val LOG_FILE_LOCATION ="Log.txt"
+    const val LOG_FILE_LOCATION ="Log.json"
+
+    const val EXTRA_LOG_FILE_LOCATION ="Log.txt"
 
     const val TAG = "MainActivity"
 

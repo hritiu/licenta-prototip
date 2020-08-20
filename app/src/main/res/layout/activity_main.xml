@@ -33,6 +33,12 @@
         android:onClick="endWalking"
         android:text="End Walking" />
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="C L E A R"
+        android:onClick="clearFiles" />
+
     <TextView
         android:id="@+id/detected_activities_title"
         android:layout_width="match_parent"

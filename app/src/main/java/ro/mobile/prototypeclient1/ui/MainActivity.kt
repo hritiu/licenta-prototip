@@ -1,7 +1,10 @@
 package ro.mobile.prototypeclient1.ui
 
+import android.app.AlertDialog
+import android.app.Dialog
 import android.app.PendingIntent
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -15,6 +18,7 @@ import android.util.Log
 import android.view.View
 import android.widget.ListView
 import android.widget.Toast
+import androidx.annotation.MainThread
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.preference.PreferenceManager
@@ -24,7 +28,7 @@ import ro.mobile.prototypeclient1.common.Constants
 import ro.mobile.prototypeclient1.common.Utils
 import ro.mobile.prototypeclient1.domain.*
 import ro.mobile.prototypeclient1.domain.DetectedActivitiesAdapter
-import java.io.File
+import java.lang.Runnable
 import java.util.ArrayList
 
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
@@ -34,13 +38,12 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     private lateinit var mAdapter: DetectedActivitiesAdapter
     private lateinit var mainHandler: Handler
 
-    private var isDriving = true
+    private var isDriving = false
     private var isWalking = false
-    private var activityHandler =
-        ActivityHandler(isDriving, isWalking)
+    private var writeLog = false
+    private var activityHandler = ActivityHandler()
     private var fileHandler = FileHandler()
-    private var locationHandler =
-        LocationHandler()
+    private var activityLog = ActivityLog(ArrayList<Pair<String, String>>())
 
     @Override
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,19 +81,13 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     @Override
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
-       if (key.equals(Constants.KEY_DETECTED_ACTIVITIES)) {
+        if (key.equals(Constants.KEY_DETECTED_ACTIVITIES)) {
             val updateDetectedActivitiesResponse = activityHandler.updateDetectedActivitiesList(
-                PreferenceManager.getDefaultSharedPreferences(mContext), this@MainActivity
+                PreferenceManager.getDefaultSharedPreferences(mContext),
+                this@MainActivity,
+                isDriving,
+                isWalking
             )
-            val detectedActivities =
-                arrayOf(updateDetectedActivitiesResponse["detectedActivities"]) as ArrayList<DetectedActivity>
-            mAdapter.updateActivities(detectedActivities)
-
-            if (updateDetectedActivitiesResponse["callDetermineLocation"] == true) {
-                determineLocation()
-                Toast.makeText(this@MainActivity, "L O C A T I O N    S A V E D", Toast.LENGTH_LONG)
-                    .show()
-            }
         }
     }
 
@@ -105,17 +102,57 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             requestActivityUpdates()
 
             val updateDetectedActivitiesResponse = activityHandler.updateDetectedActivitiesList(
-                PreferenceManager.getDefaultSharedPreferences(mContext), this@MainActivity
+                PreferenceManager.getDefaultSharedPreferences(mContext),
+                this@MainActivity,
+                isDriving,
+                isWalking
             )
-            val detectedActivities = updateDetectedActivitiesResponse["detectedActivities"] as ArrayList<DetectedActivity>
+
+            isDriving = updateDetectedActivitiesResponse["isDriving"] as Boolean
+            isWalking = updateDetectedActivitiesResponse["isWalking"] as Boolean
+
+            val detectedActivities =
+                updateDetectedActivitiesResponse["detectedActivities"] as ArrayList<DetectedActivity>
             mAdapter.updateActivities(detectedActivities)
 
-            if (updateDetectedActivitiesResponse["callDetermineLocation"] == true) {
-                determineLocation()
-                Toast.makeText(this@MainActivity, "L O C A T I O N    S A V E D", Toast.LENGTH_LONG)
-                    .show()
+            var activityConfidence = -2
+            for (activity in detectedActivities) {
+                if (Utils.activityTypeToString(activity.type) == "WALKING") {
+                    if (Utils.activityTypeToString(detectedActivities[0].type) == "UNKNOWN") {
+//                        Log.v("BUBA", "U P D A T E main activity = UNKNOWN    activity = WALKING   confidence = ${activity.confidence}")
+                        activityConfidence = -1
+                    } else {
+//                        Log.v("BUBA", "U P D A T E activity = WALKING   confidence = ${activity.confidence}")
+                        activityConfidence = activity.confidence
+                    }
+                }
             }
 
+            if (updateDetectedActivitiesResponse["callDetermineLocation"] == true) {
+                val parkingDetection = ParkingDetection(mContext)
+                val determinedLocation = parkingDetection.detectParkingLocation()
+
+                var writeLocationToFile = false
+                if (determinedLocation != null) {
+                    fileHandler.addLocationToFile(determinedLocation, mContext)
+                    fileHandler.writeExtraLog(
+                        "\n\n Location was determined by the algorithm \n\n",
+                        determinedLocation,
+                        mContext
+                    )
+                    clearLogFiles()
+                    writeLog = false
+                    Toast.makeText(this@MainActivity, "D E T E R M I N E D", Toast.LENGTH_LONG)
+                        .show()
+                } else {
+                    writeLocationToFile = true
+                    Toast.makeText(this@MainActivity, "L A S T", Toast.LENGTH_LONG).show()
+                }
+
+                determineLocation(activityConfidence, writeLocationToFile)
+            } else {
+                determineLocation(activityConfidence, false)
+            }
             mainHandler.postDelayed(this, 3000)
         }
     }
@@ -137,7 +174,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
     }
 
-    //location methods
+    // // //location methods
     //checks if the user grant the access to location
     private fun checkPermissions(): Boolean {
         if (ActivityCompat.checkSelfPermission(
@@ -167,7 +204,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     private fun isLocationEnabled(): Boolean {
-        var locationManager: LocationManager =
+        val locationManager: LocationManager =
             getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
             LocationManager.NETWORK_PROVIDER
@@ -181,28 +218,52 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     //gets the current location
-    private fun determineLocation() {
+    private fun determineLocation(activityConfidence: Int, writeLocationToFile: Boolean) {
         if (checkPermissions()) {
             if (isLocationEnabled()) {
-                var mLocationRequest = LocationRequest()
+                if (isDriving) {
+                    this.writeLog = true
+                }
+
+                val mLocationRequest = LocationRequest()
                 mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
                 mLocationRequest.interval = 0
                 mLocationRequest.fastestInterval = 0
                 mLocationRequest.numUpdates = 1
 
-                var mFusedLocationAClient = LocationServices.getFusedLocationProviderClient(this)
+                val mFusedLocationAClient = LocationServices.getFusedLocationProviderClient(this)
                 mFusedLocationAClient!!.requestLocationUpdates(
-                    mLocationRequest, mLocationCallback,
+                    mLocationRequest,
+                    mLocationCallback,
                     Looper.myLooper()
                 )
 
                 mFusedLocationAClient.lastLocation.addOnCompleteListener(this) { task ->
-                    var location: Location? = task.result
-                    var locationPoint = Location(location?.let { Utils.locationToString(it) })
+                    val location: Location? = task.result
+                    val locationPoint = Location(location?.let { Utils.locationToString(it) })
                     locationPoint.latitude = location!!.latitude
-                    locationPoint.longitude = location!!.longitude
+                    locationPoint.longitude = location.longitude
 
-                    fileHandler.addLocationToFile(locationPoint, mContext)
+                    if (activityConfidence != -2 && writeLog) {
+                        fileHandler.writeLogToFile(activityConfidence, locationPoint, mContext)
+                        activityLog.pairs.add(
+                            Pair(
+                                activityConfidence.toString(),
+                                Utils.locationToString(locationPoint)
+                            )
+                        )
+                    }
+
+                    if (writeLocationToFile) {
+                            fileHandler.addLocationToFile(locationPoint, mContext)
+                            this.writeLog = false
+                            clearLogFiles()
+                            fileHandler.writeExtraLog(
+                                "\n\n Location is the last known one \n\n",
+                                locationPoint,
+                                mContext
+                            )
+                    }
                 }
             } else {
                 Toast.makeText(this, "Turn on location", Toast.LENGTH_LONG).show()
@@ -214,49 +275,13 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
     }
 
-    //methods for DRIVE and WALK buttons
-    fun setDrivingActivity(view: View) {
-        val detectedActivity: DetectedActivity = DetectedActivity(DetectedActivity.IN_VEHICLE, 99)
-        updateDetectedActivitiesListButtons(detectedActivity)
+    fun clearFiles(view: View) {
+        val fileHandler = FileHandler()
+        fileHandler.clearFiles(mContext)
     }
 
-    fun setWalkingActivity(view: View) {
-        val detectedActivity: DetectedActivity = DetectedActivity(DetectedActivity.WALKING, 99)
-        updateDetectedActivitiesListButtons(detectedActivity)
-    }
-
-    private fun updateDetectedActivitiesListButtons(detectedActivity: DetectedActivity) {
-        val detectedActivities: ArrayList<DetectedActivity?>? =
-            Utils.detectedActivitiesFromJson(
-                PreferenceManager.getDefaultSharedPreferences(mContext)
-                    .getString(Constants.KEY_DETECTED_ACTIVITIES, "")!!
-            )
-
-        detectedActivities?.clear()
-        detectedActivities?.add(detectedActivity)
-
-        if (detectedActivities?.get(0)!!.type == DetectedActivity.IN_VEHICLE) {
-            isDriving = true;
-            isWalking = false;
-        } else if (detectedActivities[0]!!.type == DetectedActivity.ON_FOOT || detectedActivities[0]!!.type == DetectedActivity.WALKING) {
-            if (isDriving == true) {
-                determineLocation()
-                Toast.makeText(this, "L O C A T I O N    S A V E D", Toast.LENGTH_LONG).show()
-            }
-            isDriving = false;
-            isWalking = true;
-        }
-
-//        mAdapter.updateActivities(detectedActivities)
-    }
-
-    fun startWalking(view: View) {
-        val logFile: File = File(mContext.filesDir.path, Constants.LOG_FILE_LOCATION)
-        fileHandler.writeLogToFile("S T A R T     W A L K I N G\n\n\n", logFile)
-    }
-
-    fun endWalking(view: View) {
-        val logFile: File = File(mContext.filesDir.path, Constants.LOG_FILE_LOCATION)
-        fileHandler.writeLogToFile("E N D    W A L K I N G\n\n\n", logFile)
+    private fun clearLogFiles() {
+        val fileHandler = FileHandler()
+        fileHandler.clearLogFiles(mContext)
     }
 }
