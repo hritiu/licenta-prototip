@@ -28,4 +28,6 @@ object Constants {
     const val TAG = "MainActivity"
 
     const val PERMISSION_ID = 42
+
+    const val CHANNEL_1 = "channel1"
 }

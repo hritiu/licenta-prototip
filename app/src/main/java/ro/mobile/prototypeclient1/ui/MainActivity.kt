@@ -1,8 +1,6 @@
 package ro.mobile.prototypeclient1.ui
 
-import android.app.AlertDialog
-import android.app.Dialog
-import android.app.PendingIntent
+import android.app.*
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
@@ -10,19 +8,27 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
+import android.widget.EditText
 import android.widget.ListView
+import android.widget.RemoteViews
 import android.widget.Toast
 import androidx.annotation.MainThread
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.preference.PreferenceManager
 import com.google.android.gms.location.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import ro.mobile.prototypeclient1.R
 import ro.mobile.prototypeclient1.common.Constants
 import ro.mobile.prototypeclient1.common.Utils
@@ -38,12 +44,15 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     private lateinit var mAdapter: DetectedActivitiesAdapter
     private lateinit var mainHandler: Handler
 
-    private var isDriving = false
+    private var isDriving = true
     private var isWalking = false
     private var writeLog = false
+    //    private var parkingConfirmation = false
     private var activityHandler = ActivityHandler()
     private var fileHandler = FileHandler()
     private var activityLog = ActivityLog(ArrayList<Pair<String, String>>())
+    private lateinit var notificationManagerCompat: NotificationManagerCompat
+
 
     @Override
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,6 +61,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
         mContext = this;
         val detectedActivitiesListView: ListView = findViewById(R.id.detected_activities_listview)
+
+        notificationManagerCompat = NotificationManagerCompat.from(this)
 
         val detectedActivities: ArrayList<DetectedActivity?>? = Utils.detectedActivitiesFromJson(
             this.getSharedPreferences("ro.mobile.prototypeclient1_preferences", 0).getString(
@@ -119,10 +130,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             for (activity in detectedActivities) {
                 if (Utils.activityTypeToString(activity.type) == "WALKING") {
                     if (Utils.activityTypeToString(detectedActivities[0].type) == "UNKNOWN") {
-//                        Log.v("BUBA", "U P D A T E main activity = UNKNOWN    activity = WALKING   confidence = ${activity.confidence}")
                         activityConfidence = -1
                     } else {
-//                        Log.v("BUBA", "U P D A T E activity = WALKING   confidence = ${activity.confidence}")
                         activityConfidence = activity.confidence
                     }
                 }
@@ -132,9 +141,12 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 val parkingDetection = ParkingDetection(mContext)
                 val determinedLocation = parkingDetection.detectParkingLocation()
 
+                sendParkingDetectedNotification()
+
                 var writeLocationToFile = false
+                var parkingLocation = ""
                 if (determinedLocation != null) {
-                    fileHandler.addLocationToFile(determinedLocation, mContext)
+                    parkingLocation = Utils.locationToString(determinedLocation)
                     fileHandler.writeExtraLog(
                         "\n\n Location was determined by the algorithm \n\n",
                         determinedLocation,
@@ -142,14 +154,13 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                     )
                     clearLogFiles()
                     writeLog = false
-                    Toast.makeText(this@MainActivity, "D E T E R M I N E D", Toast.LENGTH_LONG)
-                        .show()
+                    Toast.makeText(this@MainActivity, "D E T E R M I N E D", Toast.LENGTH_LONG).show()
                 } else {
                     writeLocationToFile = true
                     Toast.makeText(this@MainActivity, "L A S T", Toast.LENGTH_LONG).show()
                 }
 
-                determineLocation(activityConfidence, writeLocationToFile)
+                requestParkingConfirmation(activityConfidence, writeLocationToFile, parkingLocation)
             } else {
                 determineLocation(activityConfidence, false)
             }
@@ -175,7 +186,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     // // //location methods
-    //checks if the user grant the access to location
+//checks if the user grant the access to location
     private fun checkPermissions(): Boolean {
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -255,14 +266,14 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                     }
 
                     if (writeLocationToFile) {
-                            fileHandler.addLocationToFile(locationPoint, mContext)
-                            this.writeLog = false
-                            clearLogFiles()
-                            fileHandler.writeExtraLog(
-                                "\n\n Location is the last known one \n\n",
-                                locationPoint,
-                                mContext
-                            )
+                        fileHandler.addLocationToFile(locationPoint, mContext)
+                        this.writeLog = false
+                        clearLogFiles()
+                        fileHandler.writeExtraLog(
+                            "\n\n Location is the last known one \n\n",
+                            locationPoint,
+                            mContext
+                        )
                     }
                 }
             } else {
@@ -273,6 +284,58 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         } else {
             requestPermissions()
         }
+    }
+
+    private fun requestParkingConfirmation(
+        activityConfidence: Int,
+        writeLocationToFile: Boolean,
+        location: String
+    ) {
+        lateinit var dialog: AlertDialog
+        val builder = AlertDialog.Builder(this)
+
+        builder.setMessage("Did you parked on a legal parking spot?")
+        val dialogClickListener = DialogInterface.OnClickListener { _, which ->
+            when (which) {
+                DialogInterface.BUTTON_POSITIVE -> {
+                    if (location != "") {
+                        fileHandler.addLocationToFile(Utils.stringToLocation(location), mContext)
+                    } else {
+                        determineLocation(activityConfidence, writeLocationToFile)
+                    }
+                }
+                DialogInterface.BUTTON_NEGATIVE -> {
+                    determineLocation(activityConfidence, false)
+                }
+                DialogInterface.BUTTON_NEUTRAL -> {
+                    determineLocation(activityConfidence, false)
+                }
+            }
+        }
+
+        builder.setPositiveButton("Yes", dialogClickListener)
+        builder.setNegativeButton("No", dialogClickListener)
+
+        dialog = builder.create()
+        dialog.show()
+    }
+
+    fun sendParkingDetectedNotification() {
+        val intent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        val contentView = RemoteViews(packageName, R.layout.activity_main)
+
+        val notification = NotificationCompat.Builder(this, Constants.CHANNEL_1)
+            .setSmallIcon(R.drawable.ic_parking)
+            .setContentTitle("Parking detected")
+            .setContentText("Did you park on a legal parking spot?")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManagerCompat.notify(1,notification)
     }
 
     fun clearFiles(view: View) {
