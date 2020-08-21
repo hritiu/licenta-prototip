@@ -36,8 +36,7 @@ internal class DetectedActivitiesAdapter(
 
         if (detectedActivity != null) {
             activityName.text = Utils.getActivityString(context, detectedActivity.type)
-            activityConfidenceLevel.text =
-                context.getString(R.string.percent, detectedActivity.confidence)
+            activityConfidenceLevel.text = context.getString(R.string.percent, detectedActivity.confidence)
         }
 
         return viewVariable
