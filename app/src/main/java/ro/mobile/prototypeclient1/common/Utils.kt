@@ -69,7 +69,7 @@ object Utils {
 
     //converts string to location
     fun stringToLocation(stringLocation: String): Location {
-        var location: Location = Location(stringLocation)
+        val location = Location(stringLocation)
 
         val strings = stringLocation.split(",").toTypedArray()
         location.latitude = strings[0].toDouble()
