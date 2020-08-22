@@ -9,29 +9,29 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingBottom="@dimen/activity_vertical_margin">
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="setDrivingActivity"
-        android:text="Drive" />
+<!--    <Button-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:onClick="setDrivingActivity"-->
+<!--        android:text="Drive" />-->
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="setWalkingActivity"
-        android:text="Walk" />
+<!--    <Button-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:onClick="setWalkingActivity"-->
+<!--        android:text="Walk" />-->
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="startWalking"
-        android:text="Start Walking" />
+<!--    <Button-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:onClick="startWalking"-->
+<!--        android:text="Start Walking" />-->
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="endWalking"
-        android:text="End Walking" />
+<!--    <Button-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:onClick="endWalking"-->
+<!--        android:text="End Walking" />-->
 
     <Button
         android:layout_width="wrap_content"
@@ -39,17 +39,31 @@
         android:text="C L E A R"
         android:onClick="clearFiles" />
 
-    <TextView
-        android:id="@+id/detected_activities_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/wide_space"
-        android:layout_marginBottom="@dimen/narrow_space"
-        android:text="@string/detected_activities_title"
-        android:textSize="@dimen/headline_text_size" />
-
     <ListView
         android:id="@+id/detected_activities_listview"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="111dp" />
+
+    <fragment xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:map="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".ui.MainActivity" />
+
+<!--    <TextView-->
+<!--        android:id="@+id/detected_activities_title"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_marginTop="@dimen/wide_space"-->
+<!--        android:layout_marginBottom="@dimen/narrow_space"-->
+<!--        android:text="@string/detected_activities_title"-->
+<!--        android:textSize="@dimen/headline_text_size" />-->
+
+<!--    <ListView-->
+<!--        android:id="@+id/detected_activities_listview"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content" />-->
 </LinearLayout>

@@ -6,12 +6,16 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorSpace
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.CalendarContract
 import android.provider.Settings
 import android.util.Log
 import android.view.View
@@ -21,10 +25,12 @@ import android.widget.ListView
 import android.widget.RemoteViews
 import android.widget.Toast
 import androidx.annotation.MainThread
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.graphics.ColorUtils
 import androidx.preference.PreferenceManager
 import com.google.android.gms.location.*
 import kotlinx.coroutines.GlobalScope
@@ -37,12 +43,23 @@ import ro.mobile.prototypeclient1.domain.DetectedActivitiesAdapter
 import java.lang.Runnable
 import java.util.ArrayList
 
-class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.CircleOptions
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
+
+class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener,
+    OnMapReadyCallback {
 
     private lateinit var mContext: Context
     private lateinit var mActivityRecognitionClient: ActivityRecognitionClient
     private lateinit var mAdapter: DetectedActivitiesAdapter
     private lateinit var mainHandler: Handler
+    private lateinit var map: GoogleMap
 
     private var isDriving = true
     private var isWalking = false
@@ -61,6 +78,10 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
         mContext = this;
         val detectedActivitiesListView: ListView = findViewById(R.id.detected_activities_listview)
+
+        val mapFragment = supportFragmentManager
+            .findFragmentById(R.id.map) as SupportMapFragment
+        mapFragment.getMapAsync(this)
 
         notificationManagerCompat = NotificationManagerCompat.from(this)
 
@@ -99,6 +120,64 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 isDriving,
                 isWalking
             )
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Override
+    override fun onMapReady(googleMap: GoogleMap) {
+        map = googleMap
+        val area = fileHandler.getAreasFromFile(mContext)
+        for(areaPoint in area.areas.keys) {
+            val location = Utils.stringToLocation(areaPoint)
+            map.addCircle(CircleOptions()
+                .center(LatLng(location.latitude, location.longitude))
+                .radius(50.0)
+                .strokeColor(Color.parseColor("#2271cce7"))
+                .fillColor(0x79a402fc)
+            )
+        }
+
+        if (checkPermissions()) {
+            if (isLocationEnabled()) {
+                if (isDriving) {
+                    this.writeLog = true
+                }
+
+                val mLocationRequest = LocationRequest()
+                mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+                mLocationRequest.interval = 0
+                mLocationRequest.fastestInterval = 0
+                mLocationRequest.numUpdates = 1
+
+                val mFusedLocationAClient = LocationServices.getFusedLocationProviderClient(this)
+                mFusedLocationAClient!!.requestLocationUpdates(
+                    mLocationRequest,
+                    mLocationCallback,
+                    Looper.myLooper()
+                )
+
+                mFusedLocationAClient.lastLocation.addOnCompleteListener(this) { task ->
+                    val location: Location? = task.result
+                    val locationPoint = Location(location?.let { Utils.locationToString(it) })
+                    locationPoint.latitude = location!!.latitude
+                    locationPoint.longitude = location.longitude
+
+                    // Add a marker in Sydney and move the camera
+                    val currrentLocation = LatLng(locationPoint.latitude, locationPoint.longitude)
+                    map.addMarker(MarkerOptions().position(currrentLocation).title("You are here"))
+                    val zoomLevel = 16.0f
+                    map.moveCamera(CameraUpdateFactory.newLatLngZoom(currrentLocation, zoomLevel))
+                }
+
+
+            } else {
+                Toast.makeText(this, "Turn on location", Toast.LENGTH_LONG).show()
+                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                startActivity(intent)
+            }
+        } else {
+            requestPermissions()
         }
     }
 
@@ -154,7 +233,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                     )
                     clearLogFiles()
                     writeLog = false
-                    Toast.makeText(this@MainActivity, "D E T E R M I N E D", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@MainActivity, "D E T E R M I N E D", Toast.LENGTH_LONG)
+                        .show()
                 } else {
                     writeLocationToFile = true
                     Toast.makeText(this@MainActivity, "L A S T", Toast.LENGTH_LONG).show()
@@ -267,6 +347,14 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
                     if (writeLocationToFile) {
                         fileHandler.addLocationToFile(locationPoint, mContext)
+                        if(fileHandler.checkIfLocationIsNewAreaPoint(locationPoint, mContext)) {
+                            map.addCircle(CircleOptions()
+                                .center(LatLng(locationPoint.latitude, locationPoint.longitude))
+                                .radius(50.0)
+                                .strokeColor(Color.GREEN)
+                                .fillColor(Color.BLUE)
+                            )
+                        }
                         this.writeLog = false
                         clearLogFiles()
                         fileHandler.writeExtraLog(
@@ -322,7 +410,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     fun sendParkingDetectedNotification() {
         val intent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+        val pendingIntent =
+            PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
         val contentView = RemoteViews(packageName, R.layout.activity_main)
 
         val notification = NotificationCompat.Builder(this, Constants.CHANNEL_1)
@@ -335,7 +424,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             .setAutoCancel(true)
             .build()
 
-        notificationManagerCompat.notify(1,notification)
+        notificationManagerCompat.notify(1, notification)
     }
 
     fun clearFiles(view: View) {

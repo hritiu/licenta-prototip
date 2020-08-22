@@ -10,10 +10,7 @@ class LocationHandler {
     fun addLocationToParkingAreas(location: Location?, parkingArea: Area) {
         var found = false
         for (coordinate in parkingArea.areas.keys) {
-            if (Utils.determineDistance(
-                    Utils.stringToLocation(coordinate), location!!
-                ) <= 50
-            ) {
+            if (Utils.determineDistance(Utils.stringToLocation(coordinate), location!!) <= 50) {
                 parkingArea.areas.get(coordinate)?.add(Utils.locationToString(location))
                 found = true
             }

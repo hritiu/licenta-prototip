@@ -92,7 +92,7 @@ class FileHandler() {
         return activityLog
     }
 
-    private fun getAreasFromFile(mContext: Context): Area {
+    fun getAreasFromFile(mContext: Context): Area {
         lateinit var area: Area
         val locationsFile = File(mContext.filesDir.path, Constants.FILE_LOCATION)
 
@@ -173,5 +173,21 @@ class FileHandler() {
 //        output = BufferedWriter(FileWriter(logExtraFile))
 //        output.write("")
 //        output.close()
+    }
+
+    fun checkIfLocationIsNewAreaPoint(location: Location, context: Context): Boolean {
+        val area = getAreasFromFile(context)
+
+        if(area.areas.containsKey(Utils.locationToString(location))) {
+            return false
+        } else {
+            for(areaPoint in area.areas.keys) {
+                if(Utils.determineDistance(Utils.stringToLocation(areaPoint), location) <= 50) {
+                    return false
+                }
+            }
+        }
+
+        return true
     }
 }
