@@ -7,12 +7,15 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorSpace
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.CalendarContract
 import android.provider.Settings
 import android.util.Log
 import android.view.View
@@ -22,10 +25,12 @@ import android.widget.ListView
 import android.widget.RemoteViews
 import android.widget.Toast
 import androidx.annotation.MainThread
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.graphics.ColorUtils
 import androidx.preference.PreferenceManager
 import com.google.android.gms.location.*
 import kotlinx.coroutines.GlobalScope
@@ -118,8 +123,21 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Override
     override fun onMapReady(googleMap: GoogleMap) {
+        map = googleMap
+        val area = fileHandler.getAreasFromFile(mContext)
+        for(areaPoint in area.areas.keys) {
+            val location = Utils.stringToLocation(areaPoint)
+            map.addCircle(CircleOptions()
+                .center(LatLng(location.latitude, location.longitude))
+                .radius(50.0)
+                .strokeColor(Color.parseColor("#2271cce7"))
+                .fillColor(0x79a402fc)
+            )
+        }
+
         if (checkPermissions()) {
             if (isLocationEnabled()) {
                 if (isDriving) {
@@ -145,14 +163,14 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                     locationPoint.latitude = location!!.latitude
                     locationPoint.longitude = location.longitude
 
-                    map = googleMap
-
                     // Add a marker in Sydney and move the camera
                     val currrentLocation = LatLng(locationPoint.latitude, locationPoint.longitude)
                     map.addMarker(MarkerOptions().position(currrentLocation).title("You are here"))
                     val zoomLevel = 16.0f
                     map.moveCamera(CameraUpdateFactory.newLatLngZoom(currrentLocation, zoomLevel))
                 }
+
+
             } else {
                 Toast.makeText(this, "Turn on location", Toast.LENGTH_LONG).show()
                 val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
@@ -329,13 +347,14 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
                     if (writeLocationToFile) {
                         fileHandler.addLocationToFile(locationPoint, mContext)
-                        map.addCircle(CircleOptions()
-                            .center(LatLng(locationPoint.latitude, locationPoint.longitude))
-                            .radius(50.0)
-                            .strokeColor(Color.GREEN)
-                            .fillColor(Color.BLUE)
-                        )
-
+                        if(fileHandler.checkIfLocationIsNewAreaPoint(locationPoint, mContext)) {
+                            map.addCircle(CircleOptions()
+                                .center(LatLng(locationPoint.latitude, locationPoint.longitude))
+                                .radius(50.0)
+                                .strokeColor(Color.GREEN)
+                                .fillColor(Color.BLUE)
+                            )
+                        }
                         this.writeLog = false
                         clearLogFiles()
                         fileHandler.writeExtraLog(
