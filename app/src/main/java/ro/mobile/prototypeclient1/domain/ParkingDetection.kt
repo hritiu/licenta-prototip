@@ -7,7 +7,7 @@ import ro.mobile.prototypeclient1.common.Utils
 class ParkingDetection(private val context: Context) {
 
     private var fileHandler = FileHandler()
-    private lateinit var activityLog: ActivityLog
+    private var activityLog: ActivityLog
 
     init {
         activityLog = fileHandler.getActivityLogFromFile(context)
@@ -19,7 +19,6 @@ class ParkingDetection(private val context: Context) {
         var resultPosition = -1
 
         var minimum = 101
-        var unknownActivity = false
         if (activityLog.pairs.size != 0) {
             for (position in activityLog.pairs.size - 1 downTo 0) {
                 val pair = activityLog.pairs[position]
@@ -40,8 +39,6 @@ class ParkingDetection(private val context: Context) {
                     if (minimum == 1) {
                         break
                     }
-                } else {
-                    unknownActivity = true
                 }
             }
 
@@ -56,7 +53,8 @@ class ParkingDetection(private val context: Context) {
     private fun checkTripletsBefore(position: Int): Boolean {
         if (position < 2) {
             return false
-        } else if (activityLog.pairs[position - 1].first != activityLog.pairs[position].first || activityLog.pairs[position - 2].first != activityLog.pairs[position].first) {
+        } else if (activityLog.pairs[position - 1].first != activityLog.pairs[position].first ||
+            activityLog.pairs[position - 2].first != activityLog.pairs[position].first) {
             return false
         }
 

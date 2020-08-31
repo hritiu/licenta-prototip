@@ -77,7 +77,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         setContentView(R.layout.activity_main)
 
         mContext = this;
-        val detectedActivitiesListView: ListView = findViewById(R.id.detected_activities_listview)
+//        val detectedActivitiesListView: ListView = findViewById(R.id.detected_activities_listview)
 
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
@@ -96,7 +96,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             this,
             detectedActivities
         )
-        detectedActivitiesListView.adapter = mAdapter
+//        detectedActivitiesListView.adapter = mAdapter
         mActivityRecognitionClient = ActivityRecognitionClient(this)
 
         mainHandler = Handler(Looper.getMainLooper())
@@ -128,6 +128,10 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
         val area = fileHandler.getAreasFromFile(mContext)
+        area.areas.put("46.7796758,23.5962622", ArrayList())
+        area.areas.put("46.7801799,23.5961051", ArrayList())
+        area.areas.put("46.781793,23.595333", ArrayList())
+        area.areas.put("46.782367,23.596778", ArrayList())
         for(areaPoint in area.areas.keys) {
             val location = Utils.stringToLocation(areaPoint)
             map.addCircle(CircleOptions()
@@ -382,7 +386,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         lateinit var dialog: AlertDialog
         val builder = AlertDialog.Builder(this)
 
-        builder.setMessage("Did you parked on a legal parking spot?")
+        builder.setMessage("Did you park on a legal parking spot?")
         val dialogClickListener = DialogInterface.OnClickListener { _, which ->
             when (which) {
                 DialogInterface.BUTTON_POSITIVE -> {
