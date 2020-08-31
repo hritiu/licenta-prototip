@@ -33,16 +33,16 @@
 <!--        android:onClick="endWalking"-->
 <!--        android:text="End Walking" />-->
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="C L E A R"
-        android:onClick="clearFiles" />
+<!--    <Button-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="C L E A R"-->
+<!--        android:onClick="clearFiles" />-->
 
-    <ListView
-        android:id="@+id/detected_activities_listview"
-        android:layout_width="match_parent"
-        android:layout_height="111dp" />
+<!--    <ListView-->
+<!--        android:id="@+id/detected_activities_listview"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="111dp" />-->
 
     <fragment xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:map="http://schemas.android.com/apk/res-auto"
