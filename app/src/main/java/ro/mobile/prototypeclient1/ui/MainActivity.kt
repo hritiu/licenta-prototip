@@ -51,6 +51,8 @@ import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener,
     OnMapReadyCallback {
@@ -76,7 +78,10 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        mContext = this;
+        mContext = this
+        if(!checkPermissions()) {
+            requestPermissions()
+        }
 //        val detectedActivitiesListView: ListView = findViewById(R.id.detected_activities_listview)
 
         val mapFragment = supportFragmentManager
@@ -132,13 +137,14 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         area.areas.put("46.7801799,23.5961051", ArrayList())
         area.areas.put("46.781793,23.595333", ArrayList())
         area.areas.put("46.782367,23.596778", ArrayList())
-        for(areaPoint in area.areas.keys) {
+        for (areaPoint in area.areas.keys) {
             val location = Utils.stringToLocation(areaPoint)
-            map.addCircle(CircleOptions()
-                .center(LatLng(location.latitude, location.longitude))
-                .radius(50.0)
-                .strokeColor(Color.parseColor("#2271cce7"))
-                .fillColor(0x79a402fc)
+            map.addCircle(
+                CircleOptions()
+                    .center(LatLng(location.latitude, location.longitude))
+                    .radius(50.0)
+                    .strokeColor(Color.parseColor("#2271cce7"))
+                    .fillColor(0x79a402fc)
             )
         }
 
@@ -351,12 +357,13 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
                     if (writeLocationToFile) {
                         fileHandler.addLocationToFile(locationPoint, mContext)
-                        if(fileHandler.checkIfLocationIsNewAreaPoint(locationPoint, mContext)) {
-                            map.addCircle(CircleOptions()
-                                .center(LatLng(locationPoint.latitude, locationPoint.longitude))
-                                .radius(50.0)
-                                .strokeColor(Color.GREEN)
-                                .fillColor(Color.BLUE)
+                        if (fileHandler.checkIfLocationIsNewAreaPoint(locationPoint, mContext)) {
+                            map.addCircle(
+                                CircleOptions()
+                                    .center(LatLng(locationPoint.latitude, locationPoint.longitude))
+                                    .radius(50.0)
+                                    .strokeColor(Color.GREEN)
+                                    .fillColor(Color.BLUE)
                             )
                         }
                         this.writeLog = false
@@ -439,5 +446,45 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     private fun clearLogFiles() {
         val fileHandler = FileHandler()
         fileHandler.clearLogFiles(mContext)
+    }
+
+    fun setCurrentLocationOnMap(view: View) {
+        if (isLocationEnabled()) {
+            if (isDriving) {
+                this.writeLog = true
+            }
+
+            val mLocationRequest = LocationRequest()
+            mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            mLocationRequest.interval = 0
+            mLocationRequest.fastestInterval = 0
+            mLocationRequest.numUpdates = 1
+
+            val mFusedLocationAClient = LocationServices.getFusedLocationProviderClient(this)
+            mFusedLocationAClient!!.requestLocationUpdates(
+                mLocationRequest,
+                mLocationCallback,
+                Looper.myLooper()
+            )
+
+            mFusedLocationAClient.lastLocation.addOnCompleteListener(this) { task ->
+                val location: Location? = task.result
+                val locationPoint = Location(location?.let { Utils.locationToString(it) })
+                locationPoint.latitude = location!!.latitude
+                locationPoint.longitude = location.longitude
+
+                // Add a marker in Sydney and move the camera
+                val currrentLocation = LatLng(locationPoint.latitude, locationPoint.longitude)
+                map.addMarker(MarkerOptions().position(currrentLocation).title("You are here"))
+                val zoomLevel = 16.0f
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(currrentLocation, zoomLevel))
+            }
+
+
+        } else {
+            Toast.makeText(this, "Turn on location", Toast.LENGTH_LONG).show()
+            val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+            startActivity(intent)
+        }
     }
 }
