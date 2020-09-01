@@ -35,11 +35,11 @@
 <!--        android:onClick="endWalking"-->
 <!--        android:text="End Walking" />-->
 
-<!--    <Button-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:text="C L E A R"-->
-<!--        android:onClick="clearFiles" />-->
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="C L E A R"
+        android:onClick="clearFiles" />
 
 <!--    <ListView-->
 <!--        android:id="@+id/detected_activities_listview"-->

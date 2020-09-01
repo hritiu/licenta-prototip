@@ -7,34 +7,23 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.graphics.ColorMatrix
-import android.graphics.ColorSpace
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.CalendarContract
 import android.provider.Settings
-import android.util.Log
 import android.view.View
-import android.view.WindowManager
-import android.widget.EditText
-import android.widget.ListView
 import android.widget.RemoteViews
 import android.widget.Toast
-import androidx.annotation.MainThread
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.core.graphics.ColorUtils
 import androidx.preference.PreferenceManager
 import com.google.android.gms.location.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import ro.mobile.prototypeclient1.R
 import ro.mobile.prototypeclient1.common.Constants
 import ro.mobile.prototypeclient1.common.Utils
@@ -51,8 +40,6 @@ import com.google.android.gms.maps.model.CircleOptions
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener,
     OnMapReadyCallback {
@@ -82,7 +69,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         if(!checkPermissions()) {
             requestPermissions()
         }
-//        val detectedActivitiesListView: ListView = findViewById(R.id.detected_activities_listview)
 
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
@@ -101,7 +87,6 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             this,
             detectedActivities
         )
-//        detectedActivitiesListView.adapter = mAdapter
         mActivityRecognitionClient = ActivityRecognitionClient(this)
 
         mainHandler = Handler(Looper.getMainLooper())
@@ -243,11 +228,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                     )
                     clearLogFiles()
                     writeLog = false
-                    Toast.makeText(this@MainActivity, "D E T E R M I N E D", Toast.LENGTH_LONG)
-                        .show()
                 } else {
                     writeLocationToFile = true
-                    Toast.makeText(this@MainActivity, "L A S T", Toast.LENGTH_LONG).show()
                 }
 
                 requestParkingConfirmation(activityConfidence, writeLocationToFile, parkingLocation)
@@ -439,6 +421,11 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     fun clearFiles(view: View) {
+        val fileHandler = FileHandler()
+        fileHandler.clearFiles(mContext)
+    }
+
+    fun clearFilesNoView() {
         val fileHandler = FileHandler()
         fileHandler.clearFiles(mContext)
     }
