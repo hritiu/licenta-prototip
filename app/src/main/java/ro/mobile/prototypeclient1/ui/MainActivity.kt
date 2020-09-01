@@ -36,10 +36,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.CircleOptions
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.*
 
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener,
     OnMapReadyCallback {
@@ -50,13 +47,14 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     private lateinit var mainHandler: Handler
     private lateinit var map: GoogleMap
 
-    private var isDriving = true
+    private var isDriving = false
     private var isWalking = false
     private var writeLog = false
-    //    private var parkingConfirmation = false
     private var activityHandler = ActivityHandler()
     private var fileHandler = FileHandler()
     private var activityLog = ActivityLog(ArrayList<Pair<String, String>>())
+    private var mapCircles = ArrayList<Circle>()
+
     private lateinit var notificationManagerCompat: NotificationManagerCompat
 
 
@@ -66,7 +64,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         setContentView(R.layout.activity_main)
 
         mContext = this
-        if(!checkPermissions()) {
+        if (!checkPermissions()) {
             requestPermissions()
         }
 
@@ -117,21 +115,8 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     @Override
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
-        val area = fileHandler.getAreasFromFile(mContext)
-        area.areas.put("46.7796758,23.5962622", ArrayList())
-        area.areas.put("46.7801799,23.5961051", ArrayList())
-        area.areas.put("46.781793,23.595333", ArrayList())
-        area.areas.put("46.782367,23.596778", ArrayList())
-        for (areaPoint in area.areas.keys) {
-            val location = Utils.stringToLocation(areaPoint)
-            map.addCircle(
-                CircleOptions()
-                    .center(LatLng(location.latitude, location.longitude))
-                    .radius(50.0)
-                    .strokeColor(Color.parseColor("#2271cce7"))
-                    .fillColor(0x79a402fc)
-            )
-        }
+
+        refreshMap()
 
         if (checkPermissions()) {
             if (isLocationEnabled()) {
@@ -472,6 +457,28 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             Toast.makeText(this, "Turn on location", Toast.LENGTH_LONG).show()
             val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
             startActivity(intent)
+        }
+    }
+
+    private fun refreshMap() {
+        for(circle in mapCircles) {
+            circle.remove()
+        }
+
+        val area = fileHandler.getAreasFromFile(mContext)
+        for (areaPoint in area.areas.keys) {
+            val location = Utils.stringToLocation(areaPoint)
+            var radius = fileHandler.getMaxDistanceBetweenKeyAndLocation(mContext, areaPoint)
+            if (radius < 20) {
+                radius = (20).toFloat()
+            }
+            val circle = map.addCircle(CircleOptions()
+                .center(LatLng(location.latitude, location.longitude))
+                .radius(radius.toDouble())
+                .strokeColor(Color.parseColor("#2271cce7"))
+                .fillColor(0x79a402fc)
+            )
+            mapCircles.add(circle)
         }
     }
 }

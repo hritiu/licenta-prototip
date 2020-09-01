@@ -184,4 +184,27 @@ class FileHandler() {
 
         return true
     }
+
+    fun getMaxDistanceBetweenKeyAndLocation(mContext: Context, key: String): Float {
+        lateinit var area: Area
+        val locationsFile = File(mContext.filesDir.path, Constants.FILE_LOCATION)
+        var maxDistance: Float = (-1).toFloat()
+
+        if (locationsFile.exists()) {
+            val jsonString = this.readJsonFromFile(locationsFile)
+            area = gson.fromJson(jsonString, Area::class.java)
+            if(area.areas != null && area.areas.containsKey(key)) {
+                val values = area.areas.get(key)
+
+                for(coordinate in values!!) {
+                    val distance = Utils.determineDistance(Utils.stringToLocation(coordinate.first), Utils.stringToLocation(key))
+                    if(distance > maxDistance) {
+                        maxDistance = distance
+                    }
+                }
+            }
+        }
+
+        return maxDistance
+    }
 }
