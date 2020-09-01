@@ -36,6 +36,10 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.CircleOptions
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.*
 
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener,
@@ -324,13 +328,12 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
                     if (writeLocationToFile) {
                         fileHandler.addLocationToFile(locationPoint, mContext)
-                        if (fileHandler.checkIfLocationIsNewAreaPoint(locationPoint, mContext)) {
-                            map.addCircle(
-                                CircleOptions()
-                                    .center(LatLng(locationPoint.latitude, locationPoint.longitude))
-                                    .radius(50.0)
-                                    .strokeColor(Color.GREEN)
-                                    .fillColor(Color.BLUE)
+                        if(fileHandler.checkIfLocationIsNewAreaPoint(locationPoint, mContext)) {
+                            map.addCircle(CircleOptions()
+                                .center(LatLng(locationPoint.latitude, locationPoint.longitude))
+                                .radius(50.0)
+                                .strokeColor(Color.GREEN)
+                                .fillColor(Color.BLUE)
                             )
                         }
                         this.writeLog = false
