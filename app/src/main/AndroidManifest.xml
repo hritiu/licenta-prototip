@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
     <application
-        android:name=".ui.ParkingDetectionNotification"
+        android:name="ro.mobile.prototypeclient1.ui.ParkingDetectionNotification"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -21,7 +21,7 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBOADdfytQv-8OcaIwRV4kITreHatm3B30"/>
-        <activity android:name=".ui.MainActivity">
+        <activity android:name="ro.mobile.prototypeclient1.ui.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -29,7 +29,7 @@
             </intent-filter>
         </activity>
         <service
-            android:name=".domain.DetectedActivitiesIntentService"
+            android:name="ro.mobile.prototypeclient1.domain.DetectedActivitiesIntentService"
             android:exported="false" />
     </application>
 
