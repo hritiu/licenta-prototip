@@ -4,7 +4,6 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
-import android.widget.Toast
 import ro.mobile.prototypeclient1.common.Constants
 
 class ParkingDetectionNotification: Application() {
