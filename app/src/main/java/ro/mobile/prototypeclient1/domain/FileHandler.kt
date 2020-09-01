@@ -4,7 +4,6 @@ import android.content.Context
 import android.location.Location
 import android.os.Build
 import android.util.Log
-import android.view.View
 import com.google.gson.Gson
 import ro.mobile.prototypeclient1.common.Constants
 import ro.mobile.prototypeclient1.common.Utils
@@ -101,12 +100,12 @@ class FileHandler() {
             area = gson.fromJson(jsonString, Area::class.java)
         } else {
             locationsFile.createNewFile()
-            val areaStructure: HashMap<String, ArrayList<String>> = HashMap()
+            val areaStructure: HashMap<String, ArrayList<Pair<String, Int>>> = HashMap()
             area = Area(areaStructure)
         }
 
         if (area.areas == null) {
-            area.areas = HashMap<String, ArrayList<String>>()
+            area.areas = HashMap<String, ArrayList<Pair<String, Int>>>()
         }
 
         return area
@@ -168,11 +167,6 @@ class FileHandler() {
         var output = BufferedWriter(FileWriter(logFile))
         output.write("{}")
         output.close()
-
-//        val logExtraFile = File(mContext.filesDir.path, Constants.EXTRA_LOG_FILE_LOCATION)
-//        output = BufferedWriter(FileWriter(logExtraFile))
-//        output.write("")
-//        output.close()
     }
 
     fun checkIfLocationIsNewAreaPoint(location: Location, context: Context): Boolean {
@@ -189,5 +183,28 @@ class FileHandler() {
         }
 
         return true
+    }
+
+    fun getMaxDistanceBetweenKeyAndLocation(mContext: Context, key: String): Float {
+        lateinit var area: Area
+        val locationsFile = File(mContext.filesDir.path, Constants.FILE_LOCATION)
+        var maxDistance: Float = (-1).toFloat()
+
+        if (locationsFile.exists()) {
+            val jsonString = this.readJsonFromFile(locationsFile)
+            area = gson.fromJson(jsonString, Area::class.java)
+            if(area.areas != null && area.areas.containsKey(key)) {
+                val values = area.areas.get(key)
+
+                for(coordinate in values!!) {
+                    val distance = Utils.determineDistance(Utils.stringToLocation(coordinate.first), Utils.stringToLocation(key))
+                    if(distance > maxDistance) {
+                        maxDistance = distance
+                    }
+                }
+            }
+        }
+
+        return maxDistance
     }
 }
