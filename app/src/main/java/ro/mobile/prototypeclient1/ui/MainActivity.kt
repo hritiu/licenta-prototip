@@ -41,6 +41,7 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.*
+import com.google.gson.JsonSyntaxException
 
 class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener,
     OnMapReadyCallback {
@@ -51,7 +52,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     private lateinit var mainHandler: Handler
     private lateinit var map: GoogleMap
 
-    private var isDriving = false
+    private var isDriving = true
     private var isWalking = false
     private var writeLog = false
     private var activityHandler = ActivityHandler()
@@ -68,6 +69,7 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         setContentView(R.layout.activity_main)
 
         mContext = this
+        preventAddingInvalidData()
         if (!checkPermissions()) {
             requestPermissions()
         }
@@ -482,6 +484,14 @@ class MainActivity : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 .fillColor(0x79a402fc)
             )
             mapCircles.add(circle)
+        }
+    }
+
+    private fun preventAddingInvalidData() {
+        try{
+            fileHandler.getAreasFromFile(mContext)
+        } catch (error: JsonSyntaxException) {
+            clearFilesNoView()
         }
     }
 }
